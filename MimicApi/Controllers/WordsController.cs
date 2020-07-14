@@ -2,10 +2,13 @@
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using MimicApi.Data;
+using MimicApi.Helpers;
 using MimicApi.Models;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace MimicApi.Controllers
@@ -21,15 +24,38 @@ namespace MimicApi.Controllers
 
         [Route("")]
         [HttpGet]
-        public ActionResult GetWords(DateTime? date)
+        public ActionResult GetWords([FromQuery]WordUrlQuery query)
         {
             var words = _mimicContext.Words
                 .AsQueryable();
 
-            if (date.HasValue)
+            if (query.Date.HasValue)
             {
                 words = words
-                    .Where(w => w.CreatedAt > date.Value || w.ModifiedAt > date.Value);
+                    .Where(w => w.CreatedAt > query.Date.Value || w.ModifiedAt > query.Date.Value);
+            }
+
+            if (query.Page.HasValue && query.Quantity.HasValue)
+            {
+                var totalQuantity = words.Count();
+                words = words
+                    .Skip((query.Page.Value - 1) * query.Quantity.Value)
+                    .Take(query.Quantity.Value);
+
+                var pagination = new Pagination()
+                {
+                    Page = query.Page.Value,
+                    Quantity = query.Quantity.Value,
+                    TotalItems = totalQuantity,
+                    TotalPages = (int)Math.Ceiling((double)totalQuantity / query.Quantity.Value)
+                };
+
+                Response.Headers.Add("X-Pagination", JsonConvert.SerializeObject(pagination));
+
+                if (query.Page > pagination.TotalPages)
+                {
+                    return NotFound();
+                }
             }
 
             return Ok(words);
