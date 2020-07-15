@@ -1,9 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using MimicApi.Data;
 using MimicApi.Helpers;
 using MimicApi.Models;
+using MimicApi.Repositories.Contracts;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -16,56 +18,33 @@ namespace MimicApi.Controllers
     [Route("api/words")]
     public class WordsController : ControllerBase
     {
-        private readonly MimicContext _mimicContext;
-        public WordsController(MimicContext mimicContext)
+        private readonly IWordRepository _wordRepository;
+        public WordsController(IWordRepository wordRepository)
         {
-            _mimicContext = mimicContext;
+            _wordRepository = wordRepository;
         }
 
         [Route("")]
         [HttpGet]
         public ActionResult GetWords([FromQuery]WordUrlQuery query)
         {
-            var words = _mimicContext.Words
-                .AsQueryable();
+            var words = _wordRepository.GetWords(query);
 
-            if (query.Date.HasValue)
+            if (query.Page > words.Pagination.TotalPages)
             {
-                words = words
-                    .Where(w => w.CreatedAt > query.Date.Value || w.ModifiedAt > query.Date.Value);
+                return NotFound();
             }
 
-            if (query.Page.HasValue && query.Quantity.HasValue)
-            {
-                var totalQuantity = words.Count();
-                words = words
-                    .Skip((query.Page.Value - 1) * query.Quantity.Value)
-                    .Take(query.Quantity.Value);
+            Response.Headers.Add("X-Pagination", JsonConvert.SerializeObject(words.Pagination));
 
-                var pagination = new Pagination()
-                {
-                    Page = query.Page.Value,
-                    Quantity = query.Quantity.Value,
-                    TotalItems = totalQuantity,
-                    TotalPages = (int)Math.Ceiling((double)totalQuantity / query.Quantity.Value)
-                };
-
-                Response.Headers.Add("X-Pagination", JsonConvert.SerializeObject(pagination));
-
-                if (query.Page > pagination.TotalPages)
-                {
-                    return NotFound();
-                }
-            }
-
-            return Ok(words);
+            return Ok(words.ToList());
         }
 
         [Route("{id:int}")]
         [HttpGet]
         public ActionResult GetWord(int id)
         {
-            var word = _mimicContext.Words.Find(id);
+            var word = _wordRepository.GetWord(id);
 
             if (word == null)
                 return NotFound();
@@ -77,8 +56,7 @@ namespace MimicApi.Controllers
         [HttpPost]
         public ActionResult PostWord([FromBody]Word word)
         {
-            _mimicContext.Words.Add(word);
-            _mimicContext.SaveChanges();
+            _wordRepository.PostWord(word);
 
             return Created($"/api/words/{word.Id}", word);
         }
@@ -87,16 +65,13 @@ namespace MimicApi.Controllers
         [HttpPut]
         public ActionResult UpdateWord(int id, [FromBody]Word word)
         {
-            var obj = _mimicContext.Words
-                .AsNoTracking()
-                .FirstOrDefault(x => x.Id == id);
+            var obj = _wordRepository.GetWord(id);
 
             if (obj == null)
                 return NotFound();
 
             word.Id = id;
-            _mimicContext.Words.Update(word);
-            _mimicContext.SaveChanges();
+            _wordRepository.UpdateWord(word);
 
             return Ok();
         }
@@ -105,16 +80,14 @@ namespace MimicApi.Controllers
         [HttpDelete]
         public ActionResult DeleteWord(int id)
         {
-            var word = _mimicContext.Words.Find(id);
+            var word = _wordRepository.GetWord(id);
 
             if (word == null)
                 return NotFound();
 
-            word.Active = false;
-            _mimicContext.Words.Update(word);
-            _mimicContext.SaveChanges();
+            _wordRepository.DeleteWord(id);
 
-            return NoContent();
+            return NoContent(); 
         }
     }
 }
