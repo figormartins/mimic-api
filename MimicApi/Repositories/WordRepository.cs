@@ -6,6 +6,7 @@ using MimicApi.Repositories.Contracts;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
 namespace MimicApi.Repositories
@@ -20,10 +21,11 @@ namespace MimicApi.Repositories
         }
 
 
-        public IEnumerable<Word> GetWords(WordUrlQuery query)
+        public PaginationList<Word> GetWords(WordUrlQuery query)
         {
             var words = _context.Words
                 .AsQueryable();
+            var list = new PaginationList<Word>();
 
             if (query.Date.HasValue)
             {
@@ -45,9 +47,13 @@ namespace MimicApi.Repositories
                     TotalItems = totalQuantity,
                     TotalPages = (int)Math.Ceiling((double)totalQuantity / query.Quantity.Value)
                 };
+
+                list.Pagination = pagination;
             }
 
-            return words;
+            list.AddRange(words.ToList());
+
+            return list;
         }
 
         public Word GetWord(int id)
@@ -72,6 +78,7 @@ namespace MimicApi.Repositories
         public void DeleteWord(int id)
         {
             var word = GetWord(id);
+            word.Active = false;
             _context.Words.Update(word);
             _context.SaveChanges();
         }

@@ -12,6 +12,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MimicApi.Data;
+using MimicApi.Repositories;
+using MimicApi.Repositories.Contracts;
 
 namespace MimicApi
 {
@@ -33,6 +35,7 @@ namespace MimicApi
                 opt.UseSqlite(connectionString);
             });
             services.AddControllers();
+            services.AddScoped<IWordRepository, WordRepository>();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)

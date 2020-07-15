@@ -9,7 +9,7 @@ namespace MimicApi.Repositories.Contracts
 {
     public interface IWordRepository
     {
-        IEnumerable<Word> GetWords(WordUrlQuery query);
+        PaginationList<Word> GetWords(WordUrlQuery query);
         Word GetWord(int id);
         void PostWord(Word word);
         void UpdateWord(Word word);
