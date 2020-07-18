@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AutoMapper;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -14,6 +15,8 @@ using Microsoft.Extensions.Logging;
 using MimicApi.Data;
 using MimicApi.Repositories;
 using MimicApi.Repositories.Contracts;
+using AutoMapper;
+using MimicApi.Helpers;
 
 namespace MimicApi
 {
@@ -29,6 +32,12 @@ namespace MimicApi
         public void ConfigureServices(IServiceCollection services)
         {
             string connectionString = Configuration.GetConnectionString("Default");
+            var config = new MapperConfiguration(cfg =>
+            {
+                cfg.AddProfile(new DTOMapperPrifile());
+            });
+            IMapper mapper = config.CreateMapper();
+            services.AddSingleton(mapper);
 
             services.AddDbContext<MimicContext>(opt =>
             {
