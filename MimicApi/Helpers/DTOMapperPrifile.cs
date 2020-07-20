@@ -1,4 +1,6 @@
 ﻿using AutoMapper;
+using MimicApi.Models;
+using MimicApi.Models.DTO;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,5 +10,9 @@ namespace MimicApi.Helpers
 {
     public class DTOMapperPrifile : Profile
     {
+        public DTOMapperPrifile()
+        {
+            CreateMap<Word, WordDTO>();
+        }
     }
 }
