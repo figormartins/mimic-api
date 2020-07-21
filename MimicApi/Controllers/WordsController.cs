@@ -35,14 +35,25 @@ namespace MimicApi.Controllers
         {
             var words = _wordRepository.GetWords(query);
 
-            if (query.Page > words.Pagination.TotalPages)
+            if (words.Count == 0)
             {
                 return NotFound();
             }
 
-            Response.Headers.Add("X-Pagination", JsonConvert.SerializeObject(words.Pagination));
+            if (words.Pagination != null)
+            {
+                Response.Headers.Add("X-Pagination", JsonConvert.SerializeObject(words.Pagination));
+            }
 
-            return Ok(words.ToList());
+            var list = _mapper.Map<PaginationList<Word>, PaginationList<WordDTO>>(words);
+
+            foreach (var word in list)
+            {
+                word.Links = new List<LinkDTO>();
+                word.Links.Add(new LinkDTO("self", Url.Link("GetWord", new { id = word.Id }), "GET"));
+            }
+
+            return Ok(list);
         }
 
         [HttpGet("{id:int}", Name = "GetWord")]
