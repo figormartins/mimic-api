@@ -51,7 +51,7 @@ namespace MimicApi.Repositories
                 list.Pagination = pagination;
             }
 
-            list.AddRange(words.ToList());
+            list.Results.AddRange(words.ToList());
 
             return list;
         }

@@ -29,13 +29,12 @@ namespace MimicApi.Controllers
             _mapper = mapper;
         }
 
-        [Route("")]
-        [HttpGet]
+        [HttpGet("", Name = "GetWords")]
         public ActionResult GetWords([FromQuery]WordUrlQuery query)
         {
             var words = _wordRepository.GetWords(query);
 
-            if (words.Count == 0)
+            if (words.Results.Count == 0)
             {
                 return NotFound();
             }
@@ -47,11 +46,13 @@ namespace MimicApi.Controllers
 
             var list = _mapper.Map<PaginationList<Word>, PaginationList<WordDTO>>(words);
 
-            foreach (var word in list)
+            foreach (var word in list.Results)
             {
                 word.Links = new List<LinkDTO>();
                 word.Links.Add(new LinkDTO("self", Url.Link("GetWord", new { id = word.Id }), "GET"));
             }
+
+            list.Links.Add(new LinkDTO("self", Url.Link("GetWords", query), "GET"));
 
             return Ok(list);
         }
