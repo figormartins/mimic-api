@@ -39,11 +39,13 @@ namespace MimicApi.Controllers
                 return NotFound();
             }
 
-            if (words.Pagination != null)
-            {
-                Response.Headers.Add("X-Pagination", JsonConvert.SerializeObject(words.Pagination));
-            }
+            PaginationList<WordDTO> list = CreateLinks(query, words);
 
+            return Ok(list);
+        }
+
+        private PaginationList<WordDTO> CreateLinks(WordUrlQuery query, PaginationList<Word> words)
+        {
             var list = _mapper.Map<PaginationList<Word>, PaginationList<WordDTO>>(words);
 
             foreach (var word in list.Results)
@@ -54,7 +56,23 @@ namespace MimicApi.Controllers
 
             list.Links.Add(new LinkDTO("self", Url.Link("GetWords", query), "GET"));
 
-            return Ok(list);
+            if (words.Pagination != null)
+            {
+                Response.Headers.Add("X-Pagination", JsonConvert.SerializeObject(words.Pagination));
+
+                if (query.Page + 1 <= words.Pagination.TotalPages)
+                {
+                    var queryString = new WordUrlQuery() { Page = query.Page + 1, Quantity = query.Quantity, Date = query.Date };
+                    list.Links.Add(new LinkDTO("next", Url.Link("GetWords", queryString), "GET"));
+                }
+                if (query.Page - 1 > 0)
+                {
+                    var queryString = new WordUrlQuery() { Page = query.Page - 1, Quantity = query.Quantity, Date = query.Date };
+                    list.Links.Add(new LinkDTO("prev", Url.Link("GetWords", queryString), "GET"));
+                }
+            }
+
+            return list;
         }
 
         [HttpGet("{id:int}", Name = "GetWord")]
